@@ -32,7 +32,8 @@ public class Consumer extends Thread{
                     System.out.println("Consumer consumes "+elem);
                     queue.notifyAll();
                 }
-                Thread.sleep(150); //rapido
+                //Thread.sleep(150); //rapido
+                Thread.sleep(1000); //rapido
             }catch(Exception e){
 
             }

@@ -30,21 +30,39 @@ public class Immortal extends Thread {
     public void run() {
 
         while (true) {
-            Immortal im;
 
-            int myIndex = immortalsPopulation.indexOf(this);
+            synchronized (ControlFrame.lock) {
+                while (ControlFrame.ispaused) { 
+                    try {
+                        ControlFrame.lock.wait();
+                    } catch (Exception e) {
 
-            int nextFighterIndex = r.nextInt(immortalsPopulation.size());
-
-            //avoid self-fight
-            if (nextFighterIndex == myIndex) {
-                nextFighterIndex = ((nextFighterIndex + 1) % immortalsPopulation.size());
+                    }
+                }
             }
 
-            im = immortalsPopulation.get(nextFighterIndex);
+            Immortal im;
+                synchronized(immortalsPopulation){
 
-            this.fight(im);
+                    if (immortalsPopulation.size() <= 1) {
+                        break; 
+                    }
 
+                    int myIndex = immortalsPopulation.indexOf(this);
+
+                    int nextFighterIndex = r.nextInt(immortalsPopulation.size());
+
+                    //avoid self-fight
+                    if (nextFighterIndex == myIndex) {
+                        nextFighterIndex = ((nextFighterIndex + 1) % immortalsPopulation.size());
+                    }
+
+                    im = immortalsPopulation.get(nextFighterIndex);
+
+                    synchronized(im){
+                        this.fight(im);
+                    }  
+                }
             try {
                 Thread.sleep(1);
             } catch (InterruptedException e) {

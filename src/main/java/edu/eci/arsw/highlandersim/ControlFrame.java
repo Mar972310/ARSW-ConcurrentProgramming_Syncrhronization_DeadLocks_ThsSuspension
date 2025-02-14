@@ -31,6 +31,10 @@ public class ControlFrame extends JFrame {
 
     private List<Immortal> immortals;
 
+    public static Object lock = new Object();
+
+    public static boolean ispaused = false;
+
     private JTextArea output;
     private JLabel statisticsLabel;
     private JScrollPane scrollPane;
@@ -87,33 +91,33 @@ public class ControlFrame extends JFrame {
         JButton btnPauseAndCheck = new JButton("Pause and check");
         btnPauseAndCheck.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-
-                /*
-				 * COMPLETAR
-                 */
-                int sum = 0;
-                for (Immortal im : immortals) {
-                    sum += im.getHealth();
+                synchronized (ControlFrame.lock) {
+                    setPaused(true);
                 }
-
-                statisticsLabel.setText("<html>"+immortals.toString()+"<br>Health sum:"+ sum);
-                
-                
-
+        
+                int sum = 0;
+                synchronized (immortals) { 
+                    for (Immortal im : immortals) {
+                        sum += im.getHealth();
+                    }
+                }
+        
+                statisticsLabel.setText("<html>" + immortals.toString() + "<br>Health sum: " + sum);
             }
         });
+        
         toolBar.add(btnPauseAndCheck);
 
         JButton btnResume = new JButton("Resume");
-
         btnResume.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                /**
-                 * IMPLEMENTAR
-                 */
-
+                synchronized (ControlFrame.lock) {
+                    setPaused(false);
+                    ControlFrame.lock.notifyAll();
+                }
             }
         });
+        
 
         toolBar.add(btnResume);
 
@@ -140,6 +144,15 @@ public class ControlFrame extends JFrame {
         statisticsLabel = new JLabel("Immortals total health:");
         contentPane.add(statisticsLabel, BorderLayout.SOUTH);
 
+    }
+
+    public synchronized boolean isPaused() {
+        return ispaused;
+    }
+
+        
+    public static synchronized void setPaused(boolean paused) {
+        ispaused = paused;
     }
 
     public List<Immortal> setupInmortals() {
