@@ -34,7 +34,7 @@ public class ControlFrame extends JFrame {
 
     private List<Immortal> immortals;
 
-    public static Object lock = new Object();
+    //public static Object lock = new Object();
 
     public static boolean ispaused = false;
 
