@@ -42,7 +42,8 @@ public class Producer extends Thread {
                     queue.notifyAll();
                 }
                 
-                Thread.sleep(1000); //lento
+                //Thread.sleep(1000); //lento
+                Thread.sleep(150); //lento
             } catch (Exception e) {
                 Logger.getLogger(Producer.class.getName()).log(Level.SEVERE, null, e);
             }

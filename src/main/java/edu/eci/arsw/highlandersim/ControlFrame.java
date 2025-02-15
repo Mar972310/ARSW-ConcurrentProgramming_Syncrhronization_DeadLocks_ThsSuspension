@@ -34,6 +34,10 @@ public class ControlFrame extends JFrame {
 
     private List<Immortal> immortals;
 
+    public static Object lock = new Object();
+
+    public static boolean ispaused = false;
+
     private JTextArea output;
     private JLabel statisticsLabel;
     private JScrollPane scrollPane;
@@ -89,6 +93,7 @@ public class ControlFrame extends JFrame {
         JButton btnPauseAndCheck = new JButton("Pause and check");
         btnPauseAndCheck.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
+
                 synchronized (immortals) {
                     for(Immortal immortal: immortals){
                         immortal.pause();
@@ -106,6 +111,7 @@ public class ControlFrame extends JFrame {
                 }
             }
         });
+        
         toolBar.add(btnPauseAndCheck);
 
         JButton btnResume = new JButton("Resume");
@@ -121,6 +127,7 @@ public class ControlFrame extends JFrame {
                 }
             }
         });
+
         toolBar.add(btnResume);
 
         JLabel lblNumOfImmortals = new JLabel("num. of immortals:");
@@ -171,6 +178,15 @@ public class ControlFrame extends JFrame {
         cleaner.scheduleAtFixedRate(() -> {
             immortals.removeIf(im -> im.getHealth() <= 0);
         }, 1, 1, TimeUnit.SECONDS);
+    }
+
+    public synchronized boolean isPaused() {
+        return ispaused;
+    }
+
+        
+    public static synchronized void setPaused(boolean paused) {
+        ispaused = paused;
     }
 
     public List<Immortal> setupInmortals() {
