@@ -20,6 +20,9 @@ import java.awt.event.ActionEvent;
 import javax.swing.JLabel;
 import javax.swing.JTextField;
 import java.awt.Color;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import javax.swing.JScrollBar;
 
 public class ControlFrame extends JFrame {
@@ -39,6 +42,7 @@ public class ControlFrame extends JFrame {
     private JLabel statisticsLabel;
     private JScrollPane scrollPane;
     private JTextField numOfImmortals;
+    private final Object lock = new Object();
 
     /**
      * Launch the application.
@@ -73,17 +77,15 @@ public class ControlFrame extends JFrame {
         final JButton btnStart = new JButton("Start");
         btnStart.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-
                 immortals = setupInmortals();
-
                 if (immortals != null) {
-                    for (Immortal im : immortals) {
-                        im.start();
+                    synchronized (immortals){
+                        for (Immortal im : immortals) {
+                            im.start();
+                        }
                     }
                 }
-
                 btnStart.setEnabled(false);
-
             }
         });
         toolBar.add(btnStart);
@@ -91,18 +93,22 @@ public class ControlFrame extends JFrame {
         JButton btnPauseAndCheck = new JButton("Pause and check");
         btnPauseAndCheck.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                synchronized (ControlFrame.lock) {
-                    setPaused(true);
-                }
-        
-                int sum = 0;
-                synchronized (immortals) { 
+
+                synchronized (immortals) {
+                    for(Immortal immortal: immortals){
+                        immortal.pause();
+                    }
+                    try {
+                        Thread.sleep(immortals.size() / 10);
+                    } catch (InterruptedException e1) {
+                        e1.printStackTrace();
+                    }
+                    int sum = 0;
                     for (Immortal im : immortals) {
                         sum += im.getHealth();
                     }
+                    statisticsLabel.setText("<html>"+immortals.toString()+"<br>Health sum:"+ sum);
                 }
-        
-                statisticsLabel.setText("<html>" + immortals.toString() + "<br>Health sum: " + sum);
             }
         });
         
@@ -111,13 +117,16 @@ public class ControlFrame extends JFrame {
         JButton btnResume = new JButton("Resume");
         btnResume.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                synchronized (ControlFrame.lock) {
-                    setPaused(false);
-                    ControlFrame.lock.notifyAll();
+                synchronized (lock) {
+                    synchronized (immortals) {
+                        for (Immortal i : immortals) {
+                            i.resumeThread();
+                        }
+                        lock.notifyAll();
+                    }
                 }
             }
         });
-        
 
         toolBar.add(btnResume);
 
@@ -133,17 +142,42 @@ public class ControlFrame extends JFrame {
         btnStop.setForeground(Color.RED);
         toolBar.add(btnStop);
 
+        btnStop.addActionListener(new ActionListener() {
+            public void actionPerformed (ActionEvent e){
+                synchronized (immortals) {
+                    for(Immortal immortal: immortals){
+                        immortal.pause();
+                    }
+                    try {
+                        Thread.sleep(immortals.size() / 10);
+                    } catch (InterruptedException e1) {
+                        e1.printStackTrace();
+                    }
+                    int sum = 0;
+                    for (Immortal im : immortals) {
+                        sum += im.getHealth();
+                    }
+                    statisticsLabel.setText("<html>"+immortals.toString()+"<br>Health sum:"+ sum);
+                }
+                immortals.clear();
+                btnStart.setEnabled(true);
+            }
+        });
+
         scrollPane = new JScrollPane();
         contentPane.add(scrollPane, BorderLayout.CENTER);
 
         output = new JTextArea();
         output.setEditable(false);
         scrollPane.setViewportView(output);
-        
-        
+
         statisticsLabel = new JLabel("Immortals total health:");
         contentPane.add(statisticsLabel, BorderLayout.SOUTH);
 
+        ScheduledExecutorService cleaner = Executors.newSingleThreadScheduledExecutor();
+        cleaner.scheduleAtFixedRate(() -> {
+            immortals.removeIf(im -> im.getHealth() <= 0);
+        }, 1, 1, TimeUnit.SECONDS);
     }
 
     public synchronized boolean isPaused() {
